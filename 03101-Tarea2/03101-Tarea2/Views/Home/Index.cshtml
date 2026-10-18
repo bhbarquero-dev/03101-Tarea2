@@ -1,33 +1,118 @@
 ﻿@{
-    ViewBag.Title = "Home Page";
+    ViewBag.Title = "Mis tareas";
 }
 
-<main>
-    <section class="row" aria-labelledby="aspnetTitle">
-        <h1 id="title">ASP.NET</h1>
-        <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-        <p><a href="https://asp.net" class="btn btn-primary btn-md">Learn more &raquo;</a></p>
-    </section>
+<main class="py-4" id="app-tareas"
+      data-url-listar="@Url.Action("Listar", "Tareas")"
+      data-url-crear="@Url.Action("Crear", "Tareas")">
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Mis tareas</h1>
+        <p class="text-muted mb-0">Administra tus pendientes sin recargar la página.</p>
+    </div>
 
-    <div class="row">
-        <section class="col-md-4" aria-labelledby="gettingStartedTitle">
-            <h2 id="gettingStartedTitle">Getting started</h2>
-            <p>
-                ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-                enables a clean separation of concerns and gives you full control over markup
-                for enjoyable, agile development.
-            </p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
-        </section>
-        <section class="col-md-4" aria-labelledby="librariesTitle">
-            <h2 id="librariesTitle">Get more libraries</h2>
-            <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
-        </section>
-        <section class="col-md-4" aria-labelledby="hostingTitle">
-            <h2 id="hostingTitle">Web Hosting</h2>
-            <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
-        </section>
+    @* Área de mensajes (éxito / error). La llenará jQuery. *@
+    <div id="mensajes" class="mb-3" role="status" aria-live="polite"></div>
+
+    <div class="row g-4">
+
+        @* ===== Formulario: crear tarea ===== *@
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header fw-semibold">Nueva tarea</div>
+                <div class="card-body">
+                    <form id="form-tarea" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label">Título</label>
+                            <input type="text" id="titulo" name="titulo" class="form-control" maxlength="100" required />
+                            <div class="invalid-feedback">El título es obligatorio.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea id="descripcion" name="descripcion" class="form-control" rows="3" maxlength="500"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Agregar tarea</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        @* ===== Lista de tareas ===== *@
+        <div class="col-lg-8">
+
+            @* Filtro por estado *@
+            <div class="btn-group mb-3" role="group" aria-label="Filtrar tareas por estado" id="filtro-estado">
+                <input type="radio" class="btn-check" name="filtro" id="filtro-todas" value="todas" autocomplete="off" checked>
+                <label class="btn btn-outline-secondary" for="filtro-todas">Todas <span class="badge text-bg-secondary" id="cont-todas">0</span></label>
+
+                <input type="radio" class="btn-check" name="filtro" id="filtro-pendientes" value="pendientes" autocomplete="off">
+                <label class="btn btn-outline-secondary" for="filtro-pendientes">Pendientes <span class="badge text-bg-secondary" id="cont-pendientes">0</span></label>
+
+                <input type="radio" class="btn-check" name="filtro" id="filtro-completadas" value="completadas" autocomplete="off">
+                <label class="btn btn-outline-secondary" for="filtro-completadas">Completadas <span class="badge text-bg-secondary" id="cont-completadas">0</span></label>
+            </div>
+
+            @* Mensaje cuando no hay tareas (tareas.js lo muestra cuando la lista está vacía) *@
+            <div id="sin-tareas" class="alert alert-light border text-center d-none">
+                No hay tareas para mostrar.
+            </div>
+
+            @* Las tareas las dibuja tareas.js con los datos que devuelve el servidor. *@
+            <ul id="lista-tareas" class="list-group"></ul>
+        </div>
     </div>
 </main>
+
+@* ===== Modal: editar tarea ===== *@
+<div class="modal fade" id="modal-editar" tabindex="-1" aria-labelledby="modal-editar-titulo" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-editar" novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="modal-editar-titulo">Editar tarea</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editar-id" />
+                    <div class="mb-3">
+                        <label for="editar-titulo" class="form-label">Título</label>
+                        <input type="text" id="editar-titulo" class="form-control" maxlength="100" required />
+                        <div class="invalid-feedback">El título es obligatorio.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editar-descripcion" class="form-label">Descripción</label>
+                        <textarea id="editar-descripcion" class="form-control" rows="3" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ===== Modal: confirmar eliminación ===== *@
+<div class="modal fade" id="modal-eliminar" tabindex="-1" aria-labelledby="modal-eliminar-titulo" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="modal-eliminar-titulo">Eliminar tarea</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="eliminar-id" />
+                ¿Seguro que deseas eliminar esta tarea?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn-confirmar-eliminar">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/tareas.js"></script>
+}

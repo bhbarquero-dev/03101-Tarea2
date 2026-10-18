@@ -18,3 +18,20 @@ select,
 textarea {
     max-width: 280px;
 }
+
+/* ===== To-Do: estilos propios ===== */
+
+/* Los campos de formulario ocupan todo el ancho de su contenedor */
+.form-control {
+    max-width: 100%;
+}
+
+/* Tarea completada: texto tachado y atenuado */
+.tarea-completada .tarea-titulo {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.tarea-completada .tarea-descripcion {
+    opacity: 0.7;
+}
