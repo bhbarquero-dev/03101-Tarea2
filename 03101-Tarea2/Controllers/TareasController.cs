@@ -52,6 +52,20 @@ namespace _03101_Tarea2.Controllers
             return Json(new { ok = true, tarea = Proyectar(nueva) });
         }
 
+        // POST /Tareas/MarcarCompletada
+        // Recibe el estado deseado (no "alternar"), así repetir la petición no cambia el resultado.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult MarcarCompletada(int id, bool completada)
+        {
+            var tarea = ObtenerTareas().FirstOrDefault(t => t.Id == id);
+            if (tarea == null)
+                return Json(new { ok = false, mensaje = "La tarea no existe (puede que la sesión haya expirado)." });
+
+            tarea.Completada = completada;
+            return Json(new { ok = true, tarea = Proyectar(tarea) });
+        }
+
         // Obtiene la lista guardada en Session (la crea si es la primera vez).
         private List<Tarea> ObtenerTareas()
         {

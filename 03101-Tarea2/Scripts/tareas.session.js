@@ -6,12 +6,13 @@
  * Contrato:
  *   listar()                    -> promesa que resuelve con un arreglo de tareas
  *   crear(titulo, descripcion)  -> promesa que resuelve con la tarea creada
+ *   cambiarEstado(id, completada) -> promesa que resuelve con la tarea actualizada
  * Si algo falla, la promesa se rechaza con un texto para mostrar al usuario.
  */
 var AlmacenSession = (function ($) {
     "use strict";
 
-    // config: { urlListar, urlCrear, obtenerToken }
+    // config: { urlListar, urlCrear, urlEstado, obtenerToken }
     function crear(config) {
         return {
             nombre: "session",
@@ -35,6 +36,21 @@ var AlmacenSession = (function ($) {
                     if (resp.ok) { d.resolve(resp.tarea); } else { d.reject(resp.mensaje); }
                 }).fail(function () {
                     d.reject("No se pudo crear la tarea.");
+                });
+                return d.promise();
+            },
+
+            cambiarEstado: function (id, completada) {
+                var d = $.Deferred();
+                $.ajax({
+                    url: config.urlEstado,
+                    type: "POST",
+                    dataType: "json",
+                    data: { __RequestVerificationToken: config.obtenerToken(), id: id, completada: completada }
+                }).done(function (resp) {
+                    if (resp.ok) { d.resolve(resp.tarea); } else { d.reject(resp.mensaje); }
+                }).fail(function () {
+                    d.reject("No se pudo actualizar la tarea.");
                 });
                 return d.promise();
             }

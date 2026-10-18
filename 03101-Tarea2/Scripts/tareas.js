@@ -20,6 +20,7 @@ $(function () {
     var api = AlmacenSession.crear({
         urlListar: $app.data("url-listar"),
         urlCrear: $app.data("url-crear"),
+        urlEstado: $app.data("url-estado"),
         obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
     });
 
@@ -101,6 +102,35 @@ $(function () {
         });
     }
 
+    // Vuelve a pedir la lista al servidor (por ejemplo, después de un error) y la dibuja.
+    function resincronizar() {
+        api.listar().done(function (lista) { tareas = lista; }).always(renderizar);
+    }
+
+    function reemplazarTarea(actualizada) {
+        $.each(tareas, function (i, t) {
+            if (t.id === actualizada.id) { tareas[i] = actualizada; return false; }
+        });
+    }
+
+    /* ---------- Marcar como completada / pendiente ---------- */
+    // Evento delegado: funciona también con las tareas que se dibujan después.
+    $lista.on("change", ".tarea-check", function () {
+        var $check = $(this);
+        var id = parseInt($check.closest(".tarea-item").attr("data-id"), 10);
+
+        $check.prop("disabled", true);   // evita doble clic mientras responde el servidor
+
+        api.cambiarEstado(id, this.checked).done(function (tarea) {
+            reemplazarTarea(tarea);
+            renderizar();
+        }).fail(function (mensaje) {
+            mostrarMensaje("danger", mensaje);
+            resincronizar();             // deja la pantalla igual a lo que hay en el servidor
+        });
+    });
+
+    /* ---------- Crear tarea ---------- */
     $("#form-tarea").on("submit", function (e) {
         e.preventDefault();
 
