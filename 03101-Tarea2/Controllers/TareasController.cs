@@ -10,12 +10,34 @@ namespace _03101_Tarea2.Controllers
         private const string ClaveSession = "Tareas";
         private const int MaxTitulo = 100;
         private const int MaxDescripcion = 500;
+        private static readonly string[] Filtros = { "todas", "pendientes", "completadas" };
 
         [HttpGet]
-        public ActionResult Listar()
+        public ActionResult Listar(string filtro)
         {
-            var tareas = ObtenerTareas().Select(t => Proyectar(t)).ToList();
-            return Json(new { ok = true, tareas = tareas }, JsonRequestBehavior.AllowGet);
+            filtro = (filtro ?? "").Trim().ToLowerInvariant();
+            if (!Filtros.Contains(filtro))
+                filtro = "todas";
+
+            var todas = ObtenerTareas();
+            IEnumerable<Tarea> visibles = todas;
+            if (filtro == "pendientes")
+                visibles = todas.Where(t => !t.Completada);
+            else if (filtro == "completadas")
+                visibles = todas.Where(t => t.Completada);
+
+            return Json(new
+            {
+                ok = true,
+                filtro = filtro,
+                tareas = visibles.Select(t => Proyectar(t)).ToList(),
+                conteos = new
+                {
+                    todas = todas.Count,
+                    pendientes = todas.Count(t => !t.Completada),
+                    completadas = todas.Count(t => t.Completada)
+                }
+            }, JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]

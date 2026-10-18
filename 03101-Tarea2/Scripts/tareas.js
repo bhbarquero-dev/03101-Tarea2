@@ -5,6 +5,7 @@
     var $lista = $("#lista-tareas");
     var $sinTareas = $("#sin-tareas");
     var $mensajes = $("#mensajes");
+    var $filtros = $("input[name='filtro']");
     var $prefOcultarDescripciones = $("#pref-ocultar-descripciones");
 
     var api = AlmacenSession.crear({
@@ -16,8 +17,7 @@
     });
 
     var preferencias = Preferencias.leer();
-
-    var tareas = [];
+    var ultimaPeticion = 0;
 
     function mostrarMensaje(tipo, texto) {
         var $alerta = $('<div class="alert alert-dismissible fade show" role="alert"></div>')
@@ -51,25 +51,32 @@
             .append($fila);
     }
 
-    function actualizarContadores() {
-        var completadas = tareas.filter(function (t) { return t.completada; }).length;
-        $("#cont-todas").text(tareas.length);
-        $("#cont-pendientes").text(tareas.length - completadas);
-        $("#cont-completadas").text(completadas);
-    }
-
-    function renderizar() {
+    function renderizar(tareas, conteos) {
         $lista.empty();
         $.each(tareas, function (_, t) {
             $lista.append(crearItem(t));
         });
         $sinTareas.toggleClass("d-none", tareas.length > 0);
-        actualizarContadores();
+        $("#cont-todas").text(conteos.todas);
+        $("#cont-pendientes").text(conteos.pendientes);
+        $("#cont-completadas").text(conteos.completadas);
+    }
+
+    function cargarTareas() {
+        var peticion = ++ultimaPeticion;
+        api.listar(preferencias.filtro).done(function (resp) {
+            if (peticion !== ultimaPeticion) { return; }
+            renderizar(resp.tareas, resp.conteos);
+        }).fail(function (mensaje) {
+            if (peticion !== ultimaPeticion) { return; }
+            mostrarMensaje("danger", mensaje);
+        });
     }
 
     function aplicarPreferencias() {
         $lista.toggleClass("ocultar-descripciones", preferencias.ocultarDescripciones);
         $prefOcultarDescripciones.prop("checked", preferencias.ocultarDescripciones);
+        $("#filtro-" + preferencias.filtro).prop("checked", true);
     }
 
     $prefOcultarDescripciones.on("change", function () {
@@ -77,24 +84,10 @@
         aplicarPreferencias();
     });
 
-    function cargarTareas() {
-        api.listar().done(function (lista) {
-            tareas = lista;
-            renderizar();
-        }).fail(function (mensaje) {
-            mostrarMensaje("danger", mensaje);
-        });
-    }
-
-    function resincronizar() {
-        api.listar().done(function (lista) { tareas = lista; }).always(renderizar);
-    }
-
-    function reemplazarTarea(actualizada) {
-        $.each(tareas, function (i, t) {
-            if (t.id === actualizada.id) { tareas[i] = actualizada; return false; }
-        });
-    }
+    $filtros.on("change", function () {
+        preferencias = Preferencias.guardar({ filtro: this.value });
+        cargarTareas();
+    });
 
     $lista.on("change", ".tarea-check", function () {
         var $check = $(this);
@@ -102,12 +95,12 @@
 
         $check.prop("disabled", true);
 
-        api.cambiarEstado(id, this.checked).done(function (tarea) {
-            reemplazarTarea(tarea);
-            renderizar();
+        api.cambiarEstado(id, this.checked).done(function () {
+            cargarTareas();
         }).fail(function (mensaje) {
             mostrarMensaje("danger", mensaje);
-            resincronizar();
+            $check.prop("disabled", false);
+            cargarTareas();
         });
     });
 
@@ -126,13 +119,12 @@
 
         $btnConfirmarEliminar.prop("disabled", true);
 
-        api.eliminar(id).done(function (idEliminado) {
-            tareas = tareas.filter(function (t) { return t.id !== idEliminado; });
-            renderizar();
+        api.eliminar(id).done(function () {
             mostrarMensaje("success", "Tarea eliminada.");
+            cargarTareas();
         }).fail(function (mensaje) {
             mostrarMensaje("danger", mensaje);
-            resincronizar();
+            cargarTareas();
         }).always(function () {
             $btnConfirmarEliminar.prop("disabled", false);
             modalEliminar.hide();
@@ -151,12 +143,11 @@
         }
         $titulo.removeClass("is-invalid");
 
-        api.crear($titulo.val(), $("#descripcion").val()).done(function (tarea) {
-            tareas.push(tarea);
-            renderizar();
+        api.crear($titulo.val(), $("#descripcion").val()).done(function () {
             $form[0].reset();
             $titulo.trigger("focus");
             mostrarMensaje("success", "Tarea creada.");
+            cargarTareas();
         }).fail(function (mensaje) {
             mostrarMensaje("danger", mensaje);
         });

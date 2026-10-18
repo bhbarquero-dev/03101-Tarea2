@@ -5,10 +5,10 @@
         return {
             nombre: "session",
 
-            listar: function () {
+            listar: function (filtro) {
                 var d = $.Deferred();
-                $.ajax({ url: config.urlListar, type: "GET", dataType: "json", cache: false })
-                    .done(function (resp) { d.resolve(resp.tareas || []); })
+                $.ajax({ url: config.urlListar, type: "GET", dataType: "json", cache: false, data: { filtro: filtro } })
+                    .done(function (resp) { d.resolve({ tareas: resp.tareas || [], conteos: resp.conteos }); })
                     .fail(function () { d.reject("No se pudieron cargar las tareas."); });
                 return d.promise();
             },
