@@ -1,20 +1,57 @@
 ﻿/*
  * Lista de tareas - jQuery + AJAX.
- * Parte 2: listar y crear tareas (estado en Session, en el servidor).
+ * Partes 2 y 7: listar y crear tareas, con selector de modo de almacenamiento
+ * (Session en el servidor o LocalStorage en el navegador).
+ *
+ * Este archivo solo maneja la pantalla. El acceso a los datos está separado:
+ *   - tareas.session.js : almacén en el servidor (Session, vía AJAX)
+ *   - tareas.local.js   : almacén en el navegador (LocalStorage)
+ * Ambos deben cargarse antes que este archivo y ofrecen el mismo contrato.
  */
 $(function () {
     "use strict";
 
     var $app = $("#app-tareas");
-    var urlListar = $app.data("url-listar");
-    var urlCrear = $app.data("url-crear");
-
     var $lista = $("#lista-tareas");
     var $sinTareas = $("#sin-tareas");
     var $mensajes = $("#mensajes");
+    var $descripcionModo = $("#modo-descripcion");
 
-    // Copia local de las tareas que devolvió el servidor (solo para dibujar la lista).
+    var CLAVE_MODO = "tareas.modo";
+
+    var almacenes = {
+        session: AlmacenSession.crear({
+            urlListar: $app.data("url-listar"),
+            urlCrear: $app.data("url-crear"),
+            obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
+        }),
+        local: AlmacenLocal.crear()
+    };
+
+    var nombresModo = { session: "Session (servidor)", local: "LocalStorage (cliente)" };
+    var descripcionesModo = {
+        session: "Las tareas viven en el servidor (Session). El navegador solo guarda la cookie de sesión.",
+        local: "Las tareas viven en este navegador (LocalStorage). No se envían al servidor."
+    };
+
+    // Copia en memoria de las tareas del modo activo (solo para dibujar la lista).
     var tareas = [];
+
+    /* ---------- Modo activo (se recuerda entre recargas) ---------- */
+    function leerModoGuardado() {
+        try {
+            var m = window.localStorage.getItem(CLAVE_MODO);
+            return (m === "session" || m === "local") ? m : "session";
+        } catch (e) {
+            return "session";
+        }
+    }
+
+    function guardarModo(m) {
+        try { window.localStorage.setItem(CLAVE_MODO, m); } catch (e) { /* sin almacenamiento: se ignora */ }
+    }
+
+    var modo = leerModoGuardado();
 
     /* ---------- Mensajes ---------- */
     function mostrarMensaje(tipo, texto) {
@@ -27,6 +64,7 @@ $(function () {
 
     /* ---------- Dibujar la lista ---------- */
     // Se usa .text() (no concatenar HTML) para que el texto del usuario nunca se interprete como código.
+    // Importante también con LocalStorage: cualquiera puede editar esos datos desde las herramientas del navegador.
     function crearItem(t) {
         var $check = $('<input class="form-check-input mt-1 tarea-check" type="checkbox">')
             .prop("checked", t.completada)
@@ -67,52 +105,57 @@ $(function () {
         actualizarContadores();
     }
 
-    /* ---------- AJAX: listar ---------- */
+    /* ---------- Cargar tareas del modo activo ---------- */
     function cargarTareas() {
-        $.ajax({
-            url: urlListar,
-            type: "GET",
-            dataType: "json",
-            cache: false
-        }).done(function (resp) {
-            tareas = resp.tareas || [];
+        var modoSolicitado = modo;
+        almacenes[modoSolicitado].listar().done(function (lista) {
+            if (modoSolicitado !== modo) { return; }   // el usuario cambió de modo mientras se esperaba
+            tareas = lista;
             renderizar();
-        }).fail(function () {
-            mostrarMensaje("danger", "No se pudieron cargar las tareas.");
+        }).fail(function (mensaje) {
+            if (modoSolicitado !== modo) { return; }
+            tareas = [];
+            renderizar();
+            mostrarMensaje("danger", mensaje);
         });
     }
 
-    /* ---------- AJAX: crear ---------- */
+    /* ---------- Selector de modo ---------- */
+    function aplicarModoEnPantalla() {
+        $("#modo-" + modo).prop("checked", true);
+        $descripcionModo.text(descripcionesModo[modo]);
+    }
+
+    $("input[name='modo']").on("change", function () {
+        modo = this.value;
+        guardarModo(modo);
+        aplicarModoEnPantalla();
+        mostrarMensaje("info", "Modo activo: " + nombresModo[modo] + ". Cada modo tiene su propia lista.");
+        cargarTareas();
+    });
+
+    /* ---------- Crear tarea ---------- */
     $("#form-tarea").on("submit", function (e) {
         e.preventDefault();
 
         var $form = $(this);
         var $titulo = $("#titulo");
 
-        // Validación en el cliente (el servidor la repite).
+        // Validación rápida en el cliente (el servidor y el almacén local la repiten).
         if ($.trim($titulo.val()) === "") {
             $titulo.addClass("is-invalid").trigger("focus");
             return;
         }
         $titulo.removeClass("is-invalid");
 
-        $.ajax({
-            url: urlCrear,
-            type: "POST",
-            data: $form.serialize(),   // incluye el token antiforgery
-            dataType: "json"
-        }).done(function (resp) {
-            if (resp.ok) {
-                tareas.push(resp.tarea);
-                renderizar();
-                $form[0].reset();
-                $titulo.trigger("focus");
-                mostrarMensaje("success", "Tarea creada.");
-            } else {
-                mostrarMensaje("danger", resp.mensaje);
-            }
-        }).fail(function () {
-            mostrarMensaje("danger", "No se pudo crear la tarea.");
+        almacenes[modo].crear($titulo.val(), $("#descripcion").val()).done(function (tarea) {
+            tareas.push(tarea);
+            renderizar();
+            $form[0].reset();
+            $titulo.trigger("focus");
+            mostrarMensaje("success", "Tarea creada.");
+        }).fail(function (mensaje) {
+            mostrarMensaje("danger", mensaje);
         });
     });
 
@@ -120,5 +163,6 @@ $(function () {
         $(this).removeClass("is-invalid");
     });
 
+    aplicarModoEnPantalla();
     cargarTareas();
 });

@@ -10,6 +10,18 @@
         <p class="text-muted mb-0">Administra tus pendientes sin recargar la página.</p>
     </div>
 
+    @* Selector del modo de almacenamiento (Session = servidor, LocalStorage = cliente) *@
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <div class="btn-group" role="group" aria-label="Modo de almacenamiento" id="selector-modo">
+            <input type="radio" class="btn-check" name="modo" id="modo-session" value="session" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="modo-session">Session (servidor)</label>
+
+            <input type="radio" class="btn-check" name="modo" id="modo-local" value="local" autocomplete="off">
+            <label class="btn btn-outline-primary" for="modo-local">LocalStorage (cliente)</label>
+        </div>
+        <small id="modo-descripcion" class="text-muted"></small>
+    </div>
+
     @* Área de mensajes (éxito / error). La llenará jQuery. *@
     <div id="mensajes" class="mb-3" role="status" aria-live="polite"></div>
 
@@ -114,5 +126,7 @@
 </div>
 
 @section scripts {
+    <script src="~/Scripts/tareas.session.js"></script>
+    <script src="~/Scripts/tareas.local.js"></script>
     <script src="~/Scripts/tareas.js"></script>
 }
