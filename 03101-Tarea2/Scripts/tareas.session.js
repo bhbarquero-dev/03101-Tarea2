@@ -1,18 +1,6 @@
-﻿/*
- * Datos de las tareas: viven en el servidor (Session de ASP.NET).
- * Este archivo no guarda nada: solo hace peticiones AJAX a TareasController.
- * Las reglas de validación las aplica el servidor.
- *
- * Contrato:
- *   listar()                    -> promesa que resuelve con un arreglo de tareas
- *   crear(titulo, descripcion)  -> promesa que resuelve con la tarea creada
- *   cambiarEstado(id, completada) -> promesa que resuelve con la tarea actualizada
- * Si algo falla, la promesa se rechaza con un texto para mostrar al usuario.
- */
-var AlmacenSession = (function ($) {
+﻿var AlmacenSession = (function ($) {
     "use strict";
 
-    // config: { urlListar, urlCrear, urlEstado, obtenerToken }
     function crear(config) {
         return {
             nombre: "session",
@@ -51,6 +39,21 @@ var AlmacenSession = (function ($) {
                     if (resp.ok) { d.resolve(resp.tarea); } else { d.reject(resp.mensaje); }
                 }).fail(function () {
                     d.reject("No se pudo actualizar la tarea.");
+                });
+                return d.promise();
+            },
+
+            eliminar: function (id) {
+                var d = $.Deferred();
+                $.ajax({
+                    url: config.urlEliminar,
+                    type: "POST",
+                    dataType: "json",
+                    data: { __RequestVerificationToken: config.obtenerToken(), id: id }
+                }).done(function (resp) {
+                    if (resp.ok) { d.resolve(resp.id); } else { d.reject(resp.mensaje); }
+                }).fail(function () {
+                    d.reject("No se pudo eliminar la tarea.");
                 });
                 return d.promise();
             }

@@ -1,13 +1,4 @@
-﻿/*
- * Lista de tareas - jQuery + AJAX.
- *
- * Estrategia HÍBRIDA de estado:
- *   - DATOS (las tareas)        -> Session, en el servidor, vía AJAX  (tareas.session.js)
- *   - PREFERENCIAS de la vista  -> LocalStorage, en el navegador      (tareas.preferencias.js)
- *
- * Este archivo solo maneja la pantalla. Ambos archivos deben cargarse antes.
- */
-$(function () {
+﻿$(function () {
     "use strict";
 
     var $app = $("#app-tareas");
@@ -16,21 +7,18 @@ $(function () {
     var $mensajes = $("#mensajes");
     var $prefOcultarDescripciones = $("#pref-ocultar-descripciones");
 
-    // Acceso a los datos (servidor).
     var api = AlmacenSession.crear({
         urlListar: $app.data("url-listar"),
         urlCrear: $app.data("url-crear"),
         urlEstado: $app.data("url-estado"),
+        urlEliminar: $app.data("url-eliminar"),
         obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
     });
 
-    // Preferencias (navegador).
     var preferencias = Preferencias.leer();
 
-    // Copia en memoria de las tareas del servidor (solo para dibujar la lista).
     var tareas = [];
 
-    /* ---------- Mensajes ---------- */
     function mostrarMensaje(tipo, texto) {
         var $alerta = $('<div class="alert alert-dismissible fade show" role="alert"></div>')
             .addClass("alert-" + tipo)
@@ -39,8 +27,6 @@ $(function () {
         $mensajes.empty().append($alerta);
     }
 
-    /* ---------- Dibujar la lista ---------- */
-    // Se usa .text() (no concatenar HTML) para que el texto del usuario nunca se interprete como código.
     function crearItem(t) {
         var $check = $('<input class="form-check-input mt-1 tarea-check" type="checkbox">')
             .prop("checked", t.completada)
@@ -81,7 +67,6 @@ $(function () {
         actualizarContadores();
     }
 
-    /* ---------- Preferencias (LocalStorage) ---------- */
     function aplicarPreferencias() {
         $lista.toggleClass("ocultar-descripciones", preferencias.ocultarDescripciones);
         $prefOcultarDescripciones.prop("checked", preferencias.ocultarDescripciones);
@@ -92,7 +77,6 @@ $(function () {
         aplicarPreferencias();
     });
 
-    /* ---------- Datos (Session, vía AJAX) ---------- */
     function cargarTareas() {
         api.listar().done(function (lista) {
             tareas = lista;
@@ -102,7 +86,6 @@ $(function () {
         });
     }
 
-    // Vuelve a pedir la lista al servidor (por ejemplo, después de un error) y la dibuja.
     function resincronizar() {
         api.listar().done(function (lista) { tareas = lista; }).always(renderizar);
     }
@@ -113,31 +96,55 @@ $(function () {
         });
     }
 
-    /* ---------- Marcar como completada / pendiente ---------- */
-    // Evento delegado: funciona también con las tareas que se dibujan después.
     $lista.on("change", ".tarea-check", function () {
         var $check = $(this);
         var id = parseInt($check.closest(".tarea-item").attr("data-id"), 10);
 
-        $check.prop("disabled", true);   // evita doble clic mientras responde el servidor
+        $check.prop("disabled", true);
 
         api.cambiarEstado(id, this.checked).done(function (tarea) {
             reemplazarTarea(tarea);
             renderizar();
         }).fail(function (mensaje) {
             mostrarMensaje("danger", mensaje);
-            resincronizar();             // deja la pantalla igual a lo que hay en el servidor
+            resincronizar();
         });
     });
 
-    /* ---------- Crear tarea ---------- */
+    var modalEliminar = bootstrap.Modal.getOrCreateInstance(document.getElementById("modal-eliminar"));
+    var $btnConfirmarEliminar = $("#btn-confirmar-eliminar");
+
+    $lista.on("click", ".btn-eliminar", function () {
+        var $item = $(this).closest(".tarea-item");
+        $("#eliminar-id").val($item.attr("data-id"));
+        $("#eliminar-nombre").text($item.find(".tarea-titulo").text());
+        modalEliminar.show();
+    });
+
+    $btnConfirmarEliminar.on("click", function () {
+        var id = parseInt($("#eliminar-id").val(), 10);
+
+        $btnConfirmarEliminar.prop("disabled", true);
+
+        api.eliminar(id).done(function (idEliminado) {
+            tareas = tareas.filter(function (t) { return t.id !== idEliminado; });
+            renderizar();
+            mostrarMensaje("success", "Tarea eliminada.");
+        }).fail(function (mensaje) {
+            mostrarMensaje("danger", mensaje);
+            resincronizar();
+        }).always(function () {
+            $btnConfirmarEliminar.prop("disabled", false);
+            modalEliminar.hide();
+        });
+    });
+
     $("#form-tarea").on("submit", function (e) {
         e.preventDefault();
 
         var $form = $(this);
         var $titulo = $("#titulo");
 
-        // Validación rápida en el cliente (el servidor la repite).
         if ($.trim($titulo.val()) === "") {
             $titulo.addClass("is-invalid").trigger("focus");
             return;

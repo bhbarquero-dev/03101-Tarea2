@@ -5,18 +5,12 @@ using _03101_Tarea2.Models;
 
 namespace _03101_Tarea2.Controllers
 {
-    /// <summary>
-    /// Endpoints AJAX (JSON) de la lista de tareas.
-    /// El estado se guarda en Session, es decir, en el servidor:
-    /// el navegador solo conserva la cookie con el identificador de sesión.
-    /// </summary>
     public class TareasController : Controller
     {
         private const string ClaveSession = "Tareas";
         private const int MaxTitulo = 100;
         private const int MaxDescripcion = 500;
 
-        // GET /Tareas/Listar
         [HttpGet]
         public ActionResult Listar()
         {
@@ -24,7 +18,6 @@ namespace _03101_Tarea2.Controllers
             return Json(new { ok = true, tareas = tareas }, JsonRequestBehavior.AllowGet);
         }
 
-        // POST /Tareas/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Crear(string titulo, string descripcion)
@@ -52,8 +45,6 @@ namespace _03101_Tarea2.Controllers
             return Json(new { ok = true, tarea = Proyectar(nueva) });
         }
 
-        // POST /Tareas/MarcarCompletada
-        // Recibe el estado deseado (no "alternar"), así repetir la petición no cambia el resultado.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult MarcarCompletada(int id, bool completada)
@@ -66,7 +57,19 @@ namespace _03101_Tarea2.Controllers
             return Json(new { ok = true, tarea = Proyectar(tarea) });
         }
 
-        // Obtiene la lista guardada en Session (la crea si es la primera vez).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Eliminar(int id)
+        {
+            var tareas = ObtenerTareas();
+            var tarea = tareas.FirstOrDefault(t => t.Id == id);
+            if (tarea == null)
+                return Json(new { ok = false, mensaje = "La tarea no existe (puede que la sesión haya expirado)." });
+
+            tareas.Remove(tarea);
+            return Json(new { ok = true, id = id });
+        }
+
         private List<Tarea> ObtenerTareas()
         {
             var tareas = Session[ClaveSession] as List<Tarea>;
@@ -78,7 +81,6 @@ namespace _03101_Tarea2.Controllers
             return tareas;
         }
 
-        // Objeto que se envía al navegador (nombres en minúscula para JavaScript).
         private static object Proyectar(Tarea t)
         {
             return new { id = t.Id, titulo = t.Titulo, descripcion = t.Descripcion, completada = t.Completada };
