@@ -20,7 +20,7 @@ Aplicación web de administración de tareas personales (To-Do List) con operaci
 Todas las operaciones se ejecutan sin recargar la página.
 
 ## Cómo ejecutar
-1. Abrir `03101-Tarea2/03101-Tarea2.slnx` en Visual Studio.
+1. Abrir `03101-Tarea2.slnx` en Visual Studio.
 2. Restaurar paquetes NuGet.
 3. Ejecutar con F5 (IIS Express).
 
