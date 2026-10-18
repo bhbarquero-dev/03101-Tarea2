@@ -6,7 +6,7 @@ Aplicación web de administración de tareas personales (To-Do List) con operaci
 **Estudiante:** Bernal
 
 ## Tecnologías
-- ASP.NET MVC (.NET Framework 4.8)
+- ASP.NET MVC 5 (.NET Framework 4.8.1)
 - JavaScript, jQuery y AJAX
 - Gestión de estado: Session (servidor) y/o LocalStorage (cliente)
 
@@ -20,6 +20,16 @@ Aplicación web de administración de tareas personales (To-Do List) con operaci
 Todas las operaciones se ejecutan sin recargar la página.
 
 ## Cómo ejecutar
-1. Abrir `03101-Tarea2.sln` en Visual Studio 2022.
+1. Abrir `03101-Tarea2/03101-Tarea2.slnx` en Visual Studio.
 2. Restaurar paquetes NuGet.
 3. Ejecutar con F5 (IIS Express).
+
+## Avance
+- [ ] Proyecto base
+- [ ] Listar y crear tareas
+- [ ] Marcar completada/pendiente
+- [ ] Editar
+- [ ] Eliminar
+- [ ] Filtro por estado
+- [ ] Comparación con LocalStorage
+- [ ] Documento técnico y vídeo
