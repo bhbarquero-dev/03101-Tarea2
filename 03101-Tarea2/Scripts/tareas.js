@@ -1,12 +1,11 @@
 ﻿/*
  * Lista de tareas - jQuery + AJAX.
- * Partes 2 y 7: listar y crear tareas, con selector de modo de almacenamiento
- * (Session en el servidor o LocalStorage en el navegador).
  *
- * Este archivo solo maneja la pantalla. El acceso a los datos está separado:
- *   - tareas.session.js : almacén en el servidor (Session, vía AJAX)
- *   - tareas.local.js   : almacén en el navegador (LocalStorage)
- * Ambos deben cargarse antes que este archivo y ofrecen el mismo contrato.
+ * Estrategia HÍBRIDA de estado:
+ *   - DATOS (las tareas)        -> Session, en el servidor, vía AJAX  (tareas.session.js)
+ *   - PREFERENCIAS de la vista  -> LocalStorage, en el navegador      (tareas.preferencias.js)
+ *
+ * Este archivo solo maneja la pantalla. Ambos archivos deben cargarse antes.
  */
 $(function () {
     "use strict";
@@ -15,43 +14,20 @@ $(function () {
     var $lista = $("#lista-tareas");
     var $sinTareas = $("#sin-tareas");
     var $mensajes = $("#mensajes");
-    var $descripcionModo = $("#modo-descripcion");
+    var $prefOcultarDescripciones = $("#pref-ocultar-descripciones");
 
-    var CLAVE_MODO = "tareas.modo";
+    // Acceso a los datos (servidor).
+    var api = AlmacenSession.crear({
+        urlListar: $app.data("url-listar"),
+        urlCrear: $app.data("url-crear"),
+        obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
+    });
 
-    var almacenes = {
-        session: AlmacenSession.crear({
-            urlListar: $app.data("url-listar"),
-            urlCrear: $app.data("url-crear"),
-            obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
-        }),
-        local: AlmacenLocal.crear()
-    };
+    // Preferencias (navegador).
+    var preferencias = Preferencias.leer();
 
-    var nombresModo = { session: "Session (servidor)", local: "LocalStorage (cliente)" };
-    var descripcionesModo = {
-        session: "Las tareas viven en el servidor (Session). El navegador solo guarda la cookie de sesión.",
-        local: "Las tareas viven en este navegador (LocalStorage). No se envían al servidor."
-    };
-
-    // Copia en memoria de las tareas del modo activo (solo para dibujar la lista).
+    // Copia en memoria de las tareas del servidor (solo para dibujar la lista).
     var tareas = [];
-
-    /* ---------- Modo activo (se recuerda entre recargas) ---------- */
-    function leerModoGuardado() {
-        try {
-            var m = window.localStorage.getItem(CLAVE_MODO);
-            return (m === "session" || m === "local") ? m : "session";
-        } catch (e) {
-            return "session";
-        }
-    }
-
-    function guardarModo(m) {
-        try { window.localStorage.setItem(CLAVE_MODO, m); } catch (e) { /* sin almacenamiento: se ignora */ }
-    }
-
-    var modo = leerModoGuardado();
 
     /* ---------- Mensajes ---------- */
     function mostrarMensaje(tipo, texto) {
@@ -64,7 +40,6 @@ $(function () {
 
     /* ---------- Dibujar la lista ---------- */
     // Se usa .text() (no concatenar HTML) para que el texto del usuario nunca se interprete como código.
-    // Importante también con LocalStorage: cualquiera puede editar esos datos desde las herramientas del navegador.
     function crearItem(t) {
         var $check = $('<input class="form-check-input mt-1 tarea-check" type="checkbox">')
             .prop("checked", t.completada)
@@ -105,50 +80,41 @@ $(function () {
         actualizarContadores();
     }
 
-    /* ---------- Cargar tareas del modo activo ---------- */
+    /* ---------- Preferencias (LocalStorage) ---------- */
+    function aplicarPreferencias() {
+        $lista.toggleClass("ocultar-descripciones", preferencias.ocultarDescripciones);
+        $prefOcultarDescripciones.prop("checked", preferencias.ocultarDescripciones);
+    }
+
+    $prefOcultarDescripciones.on("change", function () {
+        preferencias = Preferencias.guardar({ ocultarDescripciones: this.checked });
+        aplicarPreferencias();
+    });
+
+    /* ---------- Datos (Session, vía AJAX) ---------- */
     function cargarTareas() {
-        var modoSolicitado = modo;
-        almacenes[modoSolicitado].listar().done(function (lista) {
-            if (modoSolicitado !== modo) { return; }   // el usuario cambió de modo mientras se esperaba
+        api.listar().done(function (lista) {
             tareas = lista;
             renderizar();
         }).fail(function (mensaje) {
-            if (modoSolicitado !== modo) { return; }
-            tareas = [];
-            renderizar();
             mostrarMensaje("danger", mensaje);
         });
     }
 
-    /* ---------- Selector de modo ---------- */
-    function aplicarModoEnPantalla() {
-        $("#modo-" + modo).prop("checked", true);
-        $descripcionModo.text(descripcionesModo[modo]);
-    }
-
-    $("input[name='modo']").on("change", function () {
-        modo = this.value;
-        guardarModo(modo);
-        aplicarModoEnPantalla();
-        mostrarMensaje("info", "Modo activo: " + nombresModo[modo] + ". Cada modo tiene su propia lista.");
-        cargarTareas();
-    });
-
-    /* ---------- Crear tarea ---------- */
     $("#form-tarea").on("submit", function (e) {
         e.preventDefault();
 
         var $form = $(this);
         var $titulo = $("#titulo");
 
-        // Validación rápida en el cliente (el servidor y el almacén local la repiten).
+        // Validación rápida en el cliente (el servidor la repite).
         if ($.trim($titulo.val()) === "") {
             $titulo.addClass("is-invalid").trigger("focus");
             return;
         }
         $titulo.removeClass("is-invalid");
 
-        almacenes[modo].crear($titulo.val(), $("#descripcion").val()).done(function (tarea) {
+        api.crear($titulo.val(), $("#descripcion").val()).done(function (tarea) {
             tareas.push(tarea);
             renderizar();
             $form[0].reset();
@@ -163,6 +129,6 @@ $(function () {
         $(this).removeClass("is-invalid");
     });
 
-    aplicarModoEnPantalla();
+    aplicarPreferencias();
     cargarTareas();
 });

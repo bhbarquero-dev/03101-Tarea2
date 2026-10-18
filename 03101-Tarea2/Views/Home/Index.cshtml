@@ -10,17 +10,11 @@
         <p class="text-muted mb-0">Administra tus pendientes sin recargar la página.</p>
     </div>
 
-    @* Selector del modo de almacenamiento (Session = servidor, LocalStorage = cliente) *@
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-        <div class="btn-group" role="group" aria-label="Modo de almacenamiento" id="selector-modo">
-            <input type="radio" class="btn-check" name="modo" id="modo-session" value="session" autocomplete="off" checked>
-            <label class="btn btn-outline-primary" for="modo-session">Session (servidor)</label>
-
-            <input type="radio" class="btn-check" name="modo" id="modo-local" value="local" autocomplete="off">
-            <label class="btn btn-outline-primary" for="modo-local">LocalStorage (cliente)</label>
-        </div>
-        <small id="modo-descripcion" class="text-muted"></small>
-    </div>
+    @* Dónde se guarda cada cosa (útil para entender y demostrar la estrategia híbrida) *@
+    <p class="small text-muted mb-3">
+        Tus <strong>tareas</strong> se guardan en el servidor (Session).
+        Tus <strong>preferencias de vista</strong> se guardan en este navegador (LocalStorage).
+    </p>
 
     @* Área de mensajes (éxito / error). La llenará jQuery. *@
     <div id="mensajes" class="mb-3" role="status" aria-live="polite"></div>
@@ -52,16 +46,23 @@
         @* ===== Lista de tareas ===== *@
         <div class="col-lg-8">
 
-            @* Filtro por estado *@
-            <div class="btn-group mb-3" role="group" aria-label="Filtrar tareas por estado" id="filtro-estado">
-                <input type="radio" class="btn-check" name="filtro" id="filtro-todas" value="todas" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="filtro-todas">Todas <span class="badge text-bg-secondary" id="cont-todas">0</span></label>
+            @* Filtro por estado + preferencia de vista (LocalStorage) *@
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div class="btn-group" role="group" aria-label="Filtrar tareas por estado" id="filtro-estado">
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-todas" value="todas" autocomplete="off" checked>
+                    <label class="btn btn-outline-secondary" for="filtro-todas">Todas <span class="badge text-bg-secondary" id="cont-todas">0</span></label>
 
-                <input type="radio" class="btn-check" name="filtro" id="filtro-pendientes" value="pendientes" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="filtro-pendientes">Pendientes <span class="badge text-bg-secondary" id="cont-pendientes">0</span></label>
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-pendientes" value="pendientes" autocomplete="off">
+                    <label class="btn btn-outline-secondary" for="filtro-pendientes">Pendientes <span class="badge text-bg-secondary" id="cont-pendientes">0</span></label>
 
-                <input type="radio" class="btn-check" name="filtro" id="filtro-completadas" value="completadas" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="filtro-completadas">Completadas <span class="badge text-bg-secondary" id="cont-completadas">0</span></label>
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-completadas" value="completadas" autocomplete="off">
+                    <label class="btn btn-outline-secondary" for="filtro-completadas">Completadas <span class="badge text-bg-secondary" id="cont-completadas">0</span></label>
+                </div>
+
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="pref-ocultar-descripciones">
+                    <label class="form-check-label" for="pref-ocultar-descripciones">Ocultar descripciones</label>
+                </div>
             </div>
 
             @* Mensaje cuando no hay tareas (tareas.js lo muestra cuando la lista está vacía) *@
@@ -127,6 +128,6 @@
 
 @section scripts {
     <script src="~/Scripts/tareas.session.js"></script>
-    <script src="~/Scripts/tareas.local.js"></script>
+    <script src="~/Scripts/tareas.preferencias.js"></script>
     <script src="~/Scripts/tareas.js"></script>
 }

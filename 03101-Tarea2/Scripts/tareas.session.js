@@ -1,9 +1,9 @@
 ﻿/*
- * Almacén SESSION: las tareas viven en el servidor (Session de ASP.NET).
+ * Datos de las tareas: viven en el servidor (Session de ASP.NET).
  * Este archivo no guarda nada: solo hace peticiones AJAX a TareasController.
  * Las reglas de validación las aplica el servidor.
  *
- * Contrato común de los almacenes (ver también tareas.local.js):
+ * Contrato:
  *   listar()                    -> promesa que resuelve con un arreglo de tareas
  *   crear(titulo, descripcion)  -> promesa que resuelve con la tarea creada
  * Si algo falla, la promesa se rechaza con un texto para mostrar al usuario.

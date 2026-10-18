@@ -165,7 +165,7 @@
     <Content Include="Scripts\jquery.validate.unobtrusive.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
     <Content Include="Scripts\tareas.js" />
-    <Content Include="Scripts\tareas.local.js" />
+    <Content Include="Scripts\tareas.preferencias.js" />
     <Content Include="Scripts\tareas.session.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
     <Content Include="Web.config" />
