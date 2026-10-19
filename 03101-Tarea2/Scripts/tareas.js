@@ -11,6 +11,7 @@
     var api = AlmacenSession.crear({
         urlListar: $app.data("url-listar"),
         urlCrear: $app.data("url-crear"),
+        urlEditar: $app.data("url-editar"),
         urlEstado: $app.data("url-estado"),
         urlEliminar: $app.data("url-eliminar"),
         obtenerToken: function () { return $("#form-tarea input[name='__RequestVerificationToken']").val(); }
@@ -101,6 +102,51 @@
             mostrarMensaje("danger", mensaje);
             $check.prop("disabled", false);
             cargarTareas();
+        });
+    });
+
+    var modalEditar = bootstrap.Modal.getOrCreateInstance(document.getElementById("modal-editar"));
+    var $formEditar = $("#form-editar");
+    var $editarTitulo = $("#editar-titulo");
+
+    $lista.on("click", ".btn-editar", function () {
+        var $item = $(this).closest(".tarea-item");
+        $("#editar-id").val($item.attr("data-id"));
+        $editarTitulo.removeClass("is-invalid").val($item.find(".tarea-titulo").text());
+        $("#editar-descripcion").val($item.find(".tarea-descripcion").text());
+        modalEditar.show();
+    });
+
+    $("#modal-editar").on("shown.bs.modal", function () {
+        $editarTitulo.trigger("focus");
+    });
+
+    $editarTitulo.on("input", function () {
+        $(this).removeClass("is-invalid");
+    });
+
+    $formEditar.on("submit", function (e) {
+        e.preventDefault();
+
+        if ($.trim($editarTitulo.val()) === "") {
+            $editarTitulo.addClass("is-invalid").trigger("focus");
+            return;
+        }
+
+        var id = parseInt($("#editar-id").val(), 10);
+        var $btnGuardar = $formEditar.find("button[type='submit']");
+
+        $btnGuardar.prop("disabled", true);
+
+        api.editar(id, $editarTitulo.val(), $("#editar-descripcion").val()).done(function () {
+            mostrarMensaje("success", "Tarea actualizada.");
+            cargarTareas();
+        }).fail(function (mensaje) {
+            mostrarMensaje("danger", mensaje);
+            cargarTareas();
+        }).always(function () {
+            $btnGuardar.prop("disabled", false);
+            modalEditar.hide();
         });
     });
 

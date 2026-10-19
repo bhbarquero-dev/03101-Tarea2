@@ -47,12 +47,9 @@ namespace _03101_Tarea2.Controllers
             titulo = (titulo ?? "").Trim();
             descripcion = (descripcion ?? "").Trim();
 
-            if (titulo.Length == 0)
-                return Json(new { ok = false, mensaje = "El título es obligatorio." });
-            if (titulo.Length > MaxTitulo)
-                return Json(new { ok = false, mensaje = "El título no puede superar " + MaxTitulo + " caracteres." });
-            if (descripcion.Length > MaxDescripcion)
-                return Json(new { ok = false, mensaje = "La descripción no puede superar " + MaxDescripcion + " caracteres." });
+            var error = Validar(titulo, descripcion);
+            if (error != null)
+                return Json(new { ok = false, mensaje = error });
 
             var tareas = ObtenerTareas();
             var nueva = new Tarea
@@ -65,6 +62,26 @@ namespace _03101_Tarea2.Controllers
             tareas.Add(nueva);
 
             return Json(new { ok = true, tarea = Proyectar(nueva) });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Editar(int id, string titulo, string descripcion)
+        {
+            titulo = (titulo ?? "").Trim();
+            descripcion = (descripcion ?? "").Trim();
+
+            var error = Validar(titulo, descripcion);
+            if (error != null)
+                return Json(new { ok = false, mensaje = error });
+
+            var tarea = ObtenerTareas().FirstOrDefault(t => t.Id == id);
+            if (tarea == null)
+                return Json(new { ok = false, mensaje = "La tarea no existe (puede que la sesión haya expirado)." });
+
+            tarea.Titulo = titulo;
+            tarea.Descripcion = descripcion;
+            return Json(new { ok = true, tarea = Proyectar(tarea) });
         }
 
         [HttpPost]
@@ -90,6 +107,17 @@ namespace _03101_Tarea2.Controllers
 
             tareas.Remove(tarea);
             return Json(new { ok = true, id = id });
+        }
+
+        private static string Validar(string titulo, string descripcion)
+        {
+            if (titulo.Length == 0)
+                return "El título es obligatorio.";
+            if (titulo.Length > MaxTitulo)
+                return "El título no puede superar " + MaxTitulo + " caracteres.";
+            if (descripcion.Length > MaxDescripcion)
+                return "La descripción no puede superar " + MaxDescripcion + " caracteres.";
+            return null;
         }
 
         private List<Tarea> ObtenerTareas()

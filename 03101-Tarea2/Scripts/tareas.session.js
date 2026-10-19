@@ -28,6 +28,21 @@
                 return d.promise();
             },
 
+            editar: function (id, titulo, descripcion) {
+                var d = $.Deferred();
+                $.ajax({
+                    url: config.urlEditar,
+                    type: "POST",
+                    dataType: "json",
+                    data: { __RequestVerificationToken: config.obtenerToken(), id: id, titulo: titulo, descripcion: descripcion }
+                }).done(function (resp) {
+                    if (resp.ok) { d.resolve(resp.tarea); } else { d.reject(resp.mensaje); }
+                }).fail(function () {
+                    d.reject("No se pudo editar la tarea.");
+                });
+                return d.promise();
+            },
+
             cambiarEstado: function (id, completada) {
                 var d = $.Deferred();
                 $.ajax({
