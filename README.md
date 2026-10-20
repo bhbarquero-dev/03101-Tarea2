@@ -23,13 +23,3 @@ Todas las operaciones se ejecutan sin recargar la página.
 1. Abrir `03101-Tarea2.slnx` en Visual Studio.
 2. Restaurar paquetes NuGet.
 3. Ejecutar con F5 (IIS Express).
-
-## Avance
-- [ ] Proyecto base
-- [ ] Listar y crear tareas
-- [ ] Marcar completada/pendiente
-- [ ] Editar
-- [ ] Eliminar
-- [ ] Filtro por estado
-- [ ] Comparación con LocalStorage
-- [ ] Documento técnico y vídeo
