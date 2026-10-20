@@ -6,7 +6,6 @@
     var $sinTareas = $("#sin-tareas");
     var $mensajes = $("#mensajes");
     var $filtros = $("input[name='filtro']");
-    var $prefOcultarDescripciones = $("#pref-ocultar-descripciones");
 
     var api = AlmacenSession.crear({
         urlListar: $app.data("url-listar"),
@@ -75,15 +74,8 @@
     }
 
     function aplicarPreferencias() {
-        $lista.toggleClass("ocultar-descripciones", preferencias.ocultarDescripciones);
-        $prefOcultarDescripciones.prop("checked", preferencias.ocultarDescripciones);
         $("#filtro-" + preferencias.filtro).prop("checked", true);
     }
-
-    $prefOcultarDescripciones.on("change", function () {
-        preferencias = Preferencias.guardar({ ocultarDescripciones: this.checked });
-        aplicarPreferencias();
-    });
 
     $filtros.on("change", function () {
         preferencias = Preferencias.guardar({ filtro: this.value });

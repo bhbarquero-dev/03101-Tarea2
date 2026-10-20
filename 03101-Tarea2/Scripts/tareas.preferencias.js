@@ -5,14 +5,12 @@
     var FILTROS = ["todas", "pendientes", "completadas"];
 
     var PREDETERMINADAS = {
-        ocultarDescripciones: false,
         filtro: "todas"
     };
 
     function limpiar(obj) {
         var limpio = $.extend({}, PREDETERMINADAS);
         if (obj && typeof obj === "object") {
-            if (obj.ocultarDescripciones === true) { limpio.ocultarDescripciones = true; }
             if (FILTROS.indexOf(obj.filtro) !== -1) { limpio.filtro = obj.filtro; }
         }
         return limpio;

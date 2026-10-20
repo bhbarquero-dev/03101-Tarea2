@@ -20,11 +20,11 @@ namespace _03101_Tarea2.Controllers
                 filtro = "todas";
 
             var todas = ObtenerTareas();
-            IEnumerable<Tarea> visibles = todas;
+            IEnumerable<Tarea> visibles = todas.OrderByDescending(t => t.Id);
             if (filtro == "pendientes")
-                visibles = todas.Where(t => !t.Completada);
+                visibles = visibles.Where(t => !t.Completada);
             else if (filtro == "completadas")
-                visibles = todas.Where(t => t.Completada);
+                visibles = visibles.Where(t => t.Completada);
 
             return Json(new
             {

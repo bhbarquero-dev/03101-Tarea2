@@ -31,7 +31,3 @@ textarea {
 .tarea-completada .tarea-descripcion {
     opacity: 0.7;
 }
-
-.ocultar-descripciones .tarea-descripcion {
-    display: none;
-}
